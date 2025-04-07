@@ -1,13 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 
-class HomePage extends StatelessWidget {
-  const HomePage({Key? key}) : super(key: key);
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final FirebaseFirestore db = FirebaseFirestore.instance;
+
+  //Create an empty list of maps which represent our tasks
+  final List<Map<String, dynamic>> tasks = [];
+
+  //Create a variable that captures the input of a text input
+  final TextEditingController taskController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Home Page')),
-      body: const Center(child: Text('Welcome to Home Page')),
+      appBar: AppBar(
+        backgroundColor: Colors.blue,
+        title: Row(
+          children: [
+            Expanded(child: Image.asset('assets/rdplogo.png', height: 80)),
+            const Text(
+              'RDP Daily Planner',
+              style: TextStyle(
+                fontFamily: 'Caveat',
+                fontSize: 32,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
