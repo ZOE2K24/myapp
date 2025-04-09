@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class HomePage extends StatefulWidget {
@@ -39,7 +40,7 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  // Add task to Firestore
+  // Add task
   Future<void> addTask() async {
     final taskName = nameController.text.trim();
 
@@ -59,22 +60,25 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Update task completion
-  Future<void> updateTask(String id, bool completed) async {
-    await db.collection('tasks').doc(id).update({'completed': completed});
+  // Update task status
+  Future<void> updateTask(int index, bool completed) async {
+    final task = tasks[index];
+    await db.collection('tasks').doc(task['id']).update({
+      'completed': completed,
+    });
 
     setState(() {
-      final task = tasks.firstWhere((task) => task['id'] == id);
-      task['completed'] = completed;
+      tasks[index]['completed'] = completed;
     });
   }
 
   // Delete task
-  Future<void> deleteTask(String id) async {
-    await db.collection('tasks').doc(id).delete();
+  Future<void> removeTasks(int index) async {
+    final task = tasks[index];
+    await db.collection('tasks').doc(task['id']).delete();
 
     setState(() {
-      tasks.removeWhere((task) => task['id'] == id);
+      tasks.removeAt(index);
     });
   }
 
@@ -112,7 +116,7 @@ class _HomePageState extends State<HomePage> {
             ),
             buildAddTaskSection(nameController, addTask),
             const SizedBox(height: 10),
-            Expanded(child: buildTaskList(tasks, updateTask, deleteTask)),
+            Expanded(child: buildTaskList(tasks, updateTask, removeTasks)),
           ],
         ),
       ),
@@ -121,9 +125,9 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-// Section for adding new tasks
+// Section to add tasks
 Widget buildAddTaskSection(
-  TextEditingController controller,
+  TextEditingController nameController,
   VoidCallback addTask,
 ) {
   return Padding(
@@ -133,7 +137,7 @@ Widget buildAddTaskSection(
         Expanded(
           child: TextField(
             maxLength: 32,
-            controller: controller,
+            controller: nameController,
             decoration: const InputDecoration(
               labelText: 'Add Task',
               border: OutlineInputBorder(),
@@ -147,36 +151,41 @@ Widget buildAddTaskSection(
   );
 }
 
-// Section to display the task list
+// Task list
 Widget buildTaskList(
   List<Map<String, dynamic>> tasks,
-  Function(String, bool) updateTask,
-  Function(String) deleteTask,
+  Function(int, bool) updateTask,
+  Function(int) removeTasks,
 ) {
-  if (tasks.isEmpty) {
-    return const Center(child: Text('No tasks yet!'));
-  }
-
   return ListView.builder(
+    physics: const NeverScrollableScrollPhysics(),
     itemCount: tasks.length,
     itemBuilder: (context, index) {
       final task = tasks[index];
       return ListTile(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        leading: Icon(
+          task['completed'] ? Icons.check_circle : Icons.circle_outlined,
+        ),
         title: Text(
           task['name'],
           style: TextStyle(
             decoration: task['completed'] ? TextDecoration.lineThrough : null,
+            fontSize: 22,
           ),
         ),
-        leading: Checkbox(
-          value: task['completed'],
-          onChanged: (value) {
-            updateTask(task['id'], value ?? false);
-          },
-        ),
-        trailing: IconButton(
-          icon: const Icon(Icons.delete),
-          onPressed: () => deleteTask(task['id']),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Checkbox(
+              value: task['completed'],
+              onChanged: (value) => updateTask(index, value ?? false),
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete),
+              onPressed: () => removeTasks(index),
+            ),
+          ],
         ),
       );
     },
